@@ -10,12 +10,12 @@ kintone のカスタマイズ JavaScript から REST API を使うための共�
 
 詳しい説明は、次の 6 つのメモにまとめています。
 
-- [共通部品の説明メモ](./共通部品の説明メモ.md) … 考え方と使い方（kintone 固有の用語の説明、各操作の使い方、注意点）
-- [コード解説メモ](./コード解説メモ.md) … `src/kintoneRecordApi.js` のソースコードを先頭から順に読む解説
-- [ユーティリティの説明メモ](./ユーティリティの説明メモ.md) … `src/kintoneRecordUtils.js` の考え方と使い方
-- [ユーティリティのコード解説メモ](./ユーティリティのコード解説メモ.md) … `src/kintoneRecordUtils.js` のソースコードを関数ごとに読む解説
-- [ツールの説明メモ](./ツールの説明メモ.md) … `src/kintoneRecordTools.js` の考え方と使い方
-- [ツールのコード解説メモ](./ツールのコード解説メモ.md) … `src/kintoneRecordTools.js` のソースコードを関数ごとに読む解説
+- [共通部品の説明メモ](./docs/共通部品の説明メモ.md) … 考え方と使い方（kintone 固有の用語の説明、各操作の使い方、注意点）
+- [コード解説メモ](./docs/コード解説メモ.md) … `src/kintoneRecordApi.js` のソースコードを先頭から順に読む解説
+- [ユーティリティの説明メモ](./docs/ユーティリティの説明メモ.md) … `src/kintoneRecordUtils.js` の考え方と使い方
+- [ユーティリティのコード解説メモ](./docs/ユーティリティのコード解説メモ.md) … `src/kintoneRecordUtils.js` のソースコードを関数ごとに読む解説
+- [ツールの説明メモ](./docs/ツールの説明メモ.md) … `src/kintoneRecordTools.js` の考え方と使い方
+- [ツールのコード解説メモ](./docs/ツールのコード解説メモ.md) … `src/kintoneRecordTools.js` のソースコードを関数ごとに読む解説
 
 ## フォルダ構成
 
@@ -25,13 +25,14 @@ kintone のカスタマイズ JavaScript から REST API を使うための共�
 │   ├── kintoneRecordApi.js    … 共通部品の本体（KintoneRecordApi / KintoneRecordApiError / KINTONE_LIMITS）
 │   ├── kintoneRecordUtils.js  … ユーティリティ（KintoneRecordUtils: レコードの整形・ユーザー選択の値の取り出し・日付ヘルパー）
 │   └── kintoneRecordTools.js  … ツール（KintoneRecordTools: ルックアップ用の値の取得・採番。KintoneRecordApi を使う）
-├── README.md
-├── 共通部品の説明メモ.md               … 考え方と使い方の説明
-├── コード解説メモ.md                   … ソースコードの解説
-├── ユーティリティの説明メモ.md         … ユーティリティの考え方と使い方
-├── ユーティリティのコード解説メモ.md   … ユーティリティのソースコードの解説
-├── ツールの説明メモ.md                 … ツールの考え方と使い方
-└── ツールのコード解説メモ.md           … ツールのソースコードの解説
+├── docs/
+│   ├── 共通部品の説明メモ.md               … 共通部品の考え方と使い方
+│   ├── コード解説メモ.md                   … 共通部品のソースコードの解説
+│   ├── ユーティリティの説明メモ.md         … ユーティリティの考え方と使い方
+│   ├── ユーティリティのコード解説メモ.md   … ユーティリティのソースコードの解説
+│   ├── ツールの説明メモ.md                 … ツールの考え方と使い方
+│   └── ツールのコード解説メモ.md           … ツールのソースコードの解説
+└── README.md
 ```
 
 ## 使い方
