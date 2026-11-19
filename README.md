@@ -11,7 +11,7 @@ kintone のカスタマイズ JavaScript から REST API を使うための共�
 詳しい説明は、次の 6 つのメモにまとめています。
 
 - [共通部品の説明メモ](./docs/共通部品の説明メモ.md) … 考え方と使い方（kintone 固有の用語の説明、各操作の使い方、注意点）
-- [コード解説メモ](./docs/コード解説メモ.md) … `src/kintoneRecordApi.js` のソースコードを先頭から順に読む解説
+- [共通部品のコード解説メモ](./docs/共通部品のコード解説メモ.md) … `src/kintoneRecordApi.js` のソースコードを先頭から順に読む解説
 - [ユーティリティの説明メモ](./docs/ユーティリティの説明メモ.md) … `src/kintoneRecordUtils.js` の考え方と使い方
 - [ユーティリティのコード解説メモ](./docs/ユーティリティのコード解説メモ.md) … `src/kintoneRecordUtils.js` のソースコードを関数ごとに読む解説
 - [ツールの説明メモ](./docs/ツールの説明メモ.md) … `src/kintoneRecordTools.js` の考え方と使い方
@@ -27,7 +27,7 @@ kintone のカスタマイズ JavaScript から REST API を使うための共�
 │   └── kintoneRecordTools.js  … ツール（KintoneRecordTools: ルックアップ用の値の取得・採番。KintoneRecordApi を使う）
 ├── docs/
 │   ├── 共通部品の説明メモ.md               … 共通部品の考え方と使い方
-│   ├── コード解説メモ.md                   … 共通部品のソースコードの解説
+│   ├── 共通部品のコード解説メモ.md         … 共通部品のソースコードの解説
 │   ├── ユーティリティの説明メモ.md         … ユーティリティの考え方と使い方
 │   ├── ユーティリティのコード解説メモ.md   … ユーティリティのソースコードの解説
 │   ├── ツールの説明メモ.md                 … ツールの考え方と使い方
