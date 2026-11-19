@@ -6,20 +6,32 @@ kintone のカスタマイズ JavaScript から REST API を使うための共�
 - 通信は標準の `kintone.api()` を使い、認証はカスタマイズ JS のセッション認証に任せます（API トークンやドメインはコードに書きません）。
 - TypeScript 版は作っていません。JSDoc の型（判別共用体など）は、将来 TS に移すときにほぼそのまま `type` 宣言に書き換えられる形にしています。
 
-詳しい説明は、次の 2 つのメモにまとめています。
+あわせて、レコードの形の整形と日付計算を手伝う小さなユーティリティ `src/kintoneRecordUtils.js`（「ユーティリティ」の節を参照）と、ルックアップ用の値の取得・採番をする道具 `src/kintoneRecordTools.js`（「ツール」の節を参照）も用意しています。
+
+詳しい説明は、次の 6 つのメモにまとめています。
 
 - [共通部品の説明メモ](./共通部品の説明メモ.md) … 考え方と使い方（kintone 固有の用語の説明、各操作の使い方、注意点）
 - [コード解説メモ](./コード解説メモ.md) … `src/kintoneRecordApi.js` のソースコードを先頭から順に読む解説
+- [ユーティリティの説明メモ](./ユーティリティの説明メモ.md) … `src/kintoneRecordUtils.js` の考え方と使い方
+- [ユーティリティのコード解説メモ](./ユーティリティのコード解説メモ.md) … `src/kintoneRecordUtils.js` のソースコードを関数ごとに読む解説
+- [ツールの説明メモ](./ツールの説明メモ.md) … `src/kintoneRecordTools.js` の考え方と使い方
+- [ツールのコード解説メモ](./ツールのコード解説メモ.md) … `src/kintoneRecordTools.js` のソースコードを関数ごとに読む解説
 
 ## フォルダ構成
 
 ```
 .
 ├── src/
-│   └── kintoneRecordApi.js  … 共通部品の本体（KintoneRecordApi / KintoneRecordApiError / KINTONE_LIMITS）
+│   ├── kintoneRecordApi.js    … 共通部品の本体（KintoneRecordApi / KintoneRecordApiError / KINTONE_LIMITS）
+│   ├── kintoneRecordUtils.js  … ユーティリティ（KintoneRecordUtils: レコードの整形・ユーザー選択の値の取り出し・日付ヘルパー）
+│   └── kintoneRecordTools.js  … ツール（KintoneRecordTools: ルックアップ用の値の取得・採番。KintoneRecordApi を使う）
 ├── README.md
-├── 共通部品の説明メモ.md     … 考え方と使い方の説明
-└── コード解説メモ.md         … ソースコードの解説
+├── 共通部品の説明メモ.md               … 考え方と使い方の説明
+├── コード解説メモ.md                   … ソースコードの解説
+├── ユーティリティの説明メモ.md         … ユーティリティの考え方と使い方
+├── ユーティリティのコード解説メモ.md   … ユーティリティのソースコードの解説
+├── ツールの説明メモ.md                 … ツールの考え方と使い方
+└── ツールのコード解説メモ.md           … ツールのソースコードの解説
 ```
 
 ## 使い方
@@ -29,9 +41,11 @@ kintone のカスタマイズ JavaScript から REST API を使うための共�
 アプリの設定 →「JavaScript / CSS でカスタマイズ」→「PC 用の JavaScript ファイル」に、次の順で登録します。
 
 1. `src/kintoneRecordApi.js`
-2. 利用側の JS（各アプリのカスタマイズ本体）
+2. `src/kintoneRecordUtils.js`（ユーティリティを使う場合のみ）
+3. `src/kintoneRecordTools.js`（ツールを使う場合のみ）
+4. 利用側の JS（各アプリのカスタマイズ本体）
 
-`import` / `export` は使っていません。先に読み込んだ `kintoneRecordApi.js` が `KintoneRecordApi` などをグローバルに公開するので、後続のファイルからそのまま使えます。順番を逆にすると `KintoneRecordApi` が見つからずエラーになります。
+`import` / `export` は使っていません。先に読み込んだ `kintoneRecordApi.js` が `KintoneRecordApi` などを、`kintoneRecordUtils.js` が `KintoneRecordUtils` を、`kintoneRecordTools.js` が `KintoneRecordTools` をグローバルに公開するので、後続のファイルからそのまま使えます。利用側の JS を先に置くと `KintoneRecordApi` や `KintoneRecordUtils`、`KintoneRecordTools` が見つからずエラーになります。
 
 ### 2. 呼び出し例
 
@@ -93,12 +107,129 @@ kintone.events.on('app.record.index.show', async (event) => {
 | 更新 | `updateRecords(処理名, targets)` | 複数更新（100 件ずつ自動分割。ID 指定・updateKey 指定の混在可） |
 | upsert | `upsert(処理名, { updateKey, record, revision? })` | キーの値で検索し、あれば更新・なければ登録 |
 | 削除 | `deleteRecords(処理名, ids, revisions?)` | 複数削除（100 件ずつ自動分割） |
-| バルク | `bulk(処理名, requests)` | `/k/v1/bulkRequest` を実行（20 リクエストずつ自動分割） |
-| バルク | `req(method, api, payload)` | バルクリクエスト 1 件分を組み立てる |
+| 一括 | `bulk(処理名, requests)` | `/k/v1/bulkRequest` を実行（20 リクエストずつ自動分割） |
+| 一括 | `req(method, api, payload)` | バルクリクエスト 1 件分を組み立てる |
+
+なお、引数の表記で `?` が付いている項目（`revision?` など）は、省略できる任意項目です。
 
 件数制限は `KINTONE_LIMITS`（書込 100 件・取得 500 件・バルク 20 リクエスト・取得の offset 上限 10,000）にまとめています。
 
 詳しい引数・戻り値は `src/kintoneRecordApi.js` の JSDoc を参照してください。
+
+## ユーティリティ（kintoneRecordUtils.js）
+
+`KintoneRecordUtils` は、レコードの形を整える関数、ユーザー選択などの値を取り出す関数、日付の計算をする関数をまとめたオブジェクトです。
+
+- **レコードの形の整形**: kintone の API は、レコードを `{ フィールドコード: { type, value } }` という「包まれた」形でやり取りします。値を読むときはこの包みを外し（`flattenRecord`）、登録・更新するときは `{ value }` で包み直します（`wrapRecord`）。`{ value }` の付け忘れはよくあるミスなので、包む作業を関数に任せます。
+- **日付ヘルパー**: 日付は kintone の日付フィールドと同じ `YYYY-MM-DD` 形式の文字列で受け渡しします。
+- `kintone.api()` は呼ばず、値の変換だけを行います。`KintoneRecordApi` とは独立しているので、単独でも使えます。
+
+### 関数一覧
+
+| 区分 | 関数 | 内容 |
+| --- | --- | --- |
+| 整形 | `flattenRecord(record)` | `{ フィールドコード: { type, value } }` を `{ フィールドコード: 値 }` にほぐす（サブテーブルは行ごとに `{ id, フィールドコード: 値, ... }` にほぐす。数値・計算フィールドの値は数値に変換し、未入力は `null`） |
+| 整形 | `flattenRecords(records)` | `flattenRecord` の配列版 |
+| 整形 | `wrapRecord(values, { subtables }?)` | `{ フィールドコード: 値 }` を登録・更新用の `{ フィールドコード: { value: 値 } }` に包む。すでに包まれているものはそのまま通す。サブテーブルは `subtables` にフィールドコードを指定する |
+| 整形 | `buildRecord(record, fields, { subtables }?)` | レコード（取得結果や画面の `event.record`）から、指定したフィールドだけを抜き出して登録・更新用の形にして返す。フィールドが多い登録・更新の組み立て用 |
+| ユーザー | `userCodes(値)` | ユーザー・組織・グループ選択の値から `code` だけの配列を返す（作成者・更新者のような単体の `{ code, name }` も可。未選択・`null` は `[]`） |
+| ユーザー | `userNames(値)` | 同じ値から `name` だけの配列を返す（扱いは `userCodes` と同じ） |
+| 日付 | `today()` | 今日の日付（ブラウザの現地時刻） |
+| 日付 | `addDays(日付, 日数)` | 日数後の日付（負数で前の日付） |
+| 日付 | `monthEnd(日付)` | その月の末日（うるう年も考慮） |
+| 日付 | `formatDate(日付, 書式)` | 書式の `YYYY` / `MM` / `DD` を年・月・日に置き換えた文字列 |
+| 日付 | `diffDays(日付A, 日付B)` | 日付B − 日付A の日数（整数。B の方が前なら負数） |
+| 日付 | `daysUntil(日付)` | 今日からその日付までの日数（`diffDays(today(), 日付)` と同じ。過ぎていれば負数） |
+| 文字列 | `toHalfWidthNumber(文字列)` | 数値まわりの全角（０-９・．・，・マイナス／ハイフン類）を半角に直す |
+| 画面 | `setFieldErrors(event, errors, topMessage?)` | 画面イベントで、フィールドごとにエラーメッセージを付ける。`errors` は `{ フィールドコード: メッセージ }` の対応表、`topMessage` は画面上部に出す全体向けメッセージ（省略可）。付けた件数を返す |
+
+日付ヘルパーに `YYYY-MM-DD` 形式でない文字列や、`2026-02-30` のような存在しない日付を渡すと `Error` を投げます。
+
+### 使用例
+
+```js
+const U = KintoneRecordUtils;
+
+// ほぐす: API の戻り値から値だけを取り出す
+// （kintone は数値も文字列で返すが、数値・計算フィールドは数値に変換される。未入力は null）
+U.flattenRecord({
+  $id: { type: '__ID__', value: '1' },
+  title: { type: 'SINGLE_LINE_TEXT', value: 'A' },
+  amount: { type: 'NUMBER', value: '1200' },
+});
+// → { $id: '1', title: 'A', amount: 1200 }
+
+// 包む: 登録・更新用の形にする（包み済みの値はそのまま、null は「空にする」）
+U.wrapRecord({ title: 'A', amount: { value: 100 }, memo: null });
+// → { title: { value: 'A' }, amount: { value: 100 }, memo: { value: null } }
+
+// ユーザー選択: コードだけ・名前だけを取り出す
+U.userNames([{ code: 'sato', name: '佐藤' }, { code: 'suzuki', name: '鈴木' }]);
+// → ['佐藤', '鈴木']
+
+// 日付: 5 日後（月またぎも扱える）
+U.addDays('2026-11-28', 5);
+// → '2026-12-03'
+
+// 日付: 2 つの日付の差（後 − 前）
+U.diffDays('2026-11-28', '2026-12-03');
+// → 5
+```
+
+サブテーブルの扱いや `$id` / `$revision` の注意点は「ユーティリティの説明メモ.md」を参照してください。
+
+## ツール（kintoneRecordTools.js）
+
+`KintoneRecordTools` は、よくある 2 つの処理（ルックアップのコピー先を埋める値の取得と、採番）をまとめたオブジェクトです。
+
+- `KintoneRecordApi` のインスタンスを引数で受け取り、その `getRecords` を使って取得します。このファイル自体は `kintone.api()` を呼びません。
+- そのため、`kintoneRecordApi.js` を先に読み込んでおく必要があります（`kintoneRecordUtils.js` は不要です）。
+- 第 1 引数は他と同じく **処理名** です。失敗時は `KintoneRecordApiError` などがそのまま投げられます。
+
+### 関数一覧
+
+| 関数 | 内容 |
+| --- | --- |
+| `lookupValues(処理名, masterApi, { keyField, keyValue, copies })` | マスタアプリで `keyField = keyValue` のレコードを探し、`copies`（`{ マスタのフィールドコード: 自分のフィールドコード }`）に従って `{ 自分のフィールドコード: { value: マスタの値 } }` を返す。見つからなければ `null` |
+| `nextNumber(処理名, api, { field, prefix, digits })` | `field` の既存値のうち `prefix` で始まるものの末尾の数値の最大値 + 1 を、`digits` 桁でゼロ埋めして返す（例: `P-0007` まで → `'P-0008'`、該当なし → `'P-0001'`） |
+
+### 使用例
+
+```js
+const api = new KintoneRecordApi(kintone.app.getId());
+const masterApi = new KintoneRecordApi(12); // 顧客マスタのアプリ ID
+
+// マスタから値を取ってきて、登録する record に混ぜる
+const copied = await KintoneRecordTools.lookupValues('顧客情報のコピー', masterApi, {
+  keyField: 'customer_code',
+  keyValue: 'C-001',
+  copies: { customer_name: 'customer_name', phone: 'customer_phone' },
+});
+if (!copied) {
+  throw new Error('顧客コード C-001 がマスタにありません');
+}
+
+// 次の案件コードを決める（既存が P-0007 まで → 'P-0008'）
+const projectCode = await KintoneRecordTools.nextNumber('案件コードの採番', api, {
+  field: 'project_code',
+  prefix: 'P-',
+  digits: 4,
+});
+
+await api.addRecord('案件の登録', {
+  project_code: { value: projectCode },
+  ...copied,
+});
+```
+
+### 注意点
+
+- **`lookupValues` はキーが一意である前提です**。マスタ側の `keyField` は「値の重複を禁止する」設定にしてください。複数見つかった場合は先頭の 1 件を使います。
+- **`lookupValues` は kintone のルックアップ機能そのものではありません**。値を取得して返すだけなので、コピー先に入れた値はマスタが変わっても自動では更新されません。キーの値（ルックアップフィールド自体の値）は、必要なら自分で `record` に入れてください。
+- **`nextNumber` は同時に保存すると番号が重なる可能性があります**。番号を決めてから保存するまでの間に他の人も採番すると同じ番号になるため、対象フィールドには「値の重複を禁止する」設定を併用し、重なったときは保存エラーで気づけるようにしてください。
+- `nextNumber` は対象フィールドの値を全件取得します。`getRecords` を使うため、レコードが 10,500 件を超えるアプリでは Error になります。
+- 桁数を超えた番号は切り捨てません（`P-9999` の次は `P-10000`）。
+- `copies` や `field` にアプリに無いフィールドコードを書くと、取得結果にそのフィールドが無いため Error を投げます（空の値や `P-0001` を黙って返さないため）。
 
 ## 実装上の判断
 
